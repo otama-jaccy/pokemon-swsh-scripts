@@ -6,6 +6,8 @@ from time import sleep
 import datetime
 import random
 
+from controller import Controller, Button, MoveDirection, ManipulateTime
+
 parser = argparse.ArgumentParser()
 parser.add_argument('port')
 parser.add_argument('--delay', type=int, default=10)
@@ -27,6 +29,7 @@ def send(msg, duration=0):
     ser.write(b'RELEASE\r\n')
 
 ser = serial.Serial(args.port, 9600)
+controller = Controller(args.port)
 
 # 遅延を入れる
 print(f'{args.delay}秒の遅延を入れています…（--delayで指定可能）')
@@ -39,91 +42,82 @@ try:
     # トーナメント自動化
 
     for lap in range(0, 999):
-        send('Button A', 0.2) # 話しかける
-        sleep(1)
+        # 話しかける
+        #controller.blaze_button(Button.A, ManipulateTime.create_list([(0.2, 1), (0.1, 0.5)]))
+        controller.blaze(
+            ManipulateTime.create_list([(0.2, 1), (0.1, 0.5)]),
+            controller.push_button, Button.A 
+        )
+        # はい
+        #controller.blaze_button(Button.A, ManipulateTime.create_list([(0.1, 1), (0.1, 0.5)]))
+        controller.blaze(
+            ManipulateTime.create_list([(0.1, 1), (0.1, 0.5)]),
+            controller.push_button, Button.A 
+        )
+        # いる
+        #controller.blaze_button(Button.A, ManipulateTime.create_list([(0.1, 0.5), (0.1, 0.5)]))
+        controller.blaze(
+            ManipulateTime.create_list([(0.1, 1), (0.1, 0.5)]),
+            controller.push_button, Button.A 
+        )
+        # ヤローを選択
+        controller.blaze(
+            ManipulateTime.create_list([(0.1, 0.1)]*4),
+            controller.move, MoveDirection.DOWN
+        )
+        # セリフを進める
+        controller.blaze(
+            ManipulateTime.create_list([(0.1, 0.4)]*13),
+            controller.push_button, Button.A 
+        )
 
-        send('Button A', 0.1) 
-        sleep(0.5)
-
-        send('Button A', 0.1) # はい
-        sleep(1)
-
-        send('Button A', 0.1) 
-        sleep(0.5)
-
-        send('Button A', 0.1) # いる
-        sleep(0.5)
-
-        send('Button A', 0.1)
-        sleep(0.5)
-
-        send('LY MAX', 0.1)
-        sleep(0.1)
-
-        send('LY MAX', 0.1) # ホップ
-        sleep(0.1)
-
-        for i in range(0, 13):
-            send('Button A', 0.1)
-            sleep(0.4)
-
-        # 入場
-
+        # 試合
         for i in range(0, 3):
-            send('LY MIN', 3) # 入場する
-            sleep(5)
+            # 入場
+            controller.move(MoveDirection.UP, duration=3, sleep_time=5)
 
-            send('Button A', 0.1) # セリフ1
-            sleep(1)
-
-            send('Button A', 0.1) # セリフ2
-            sleep(1)
-
-            send('Button A', 0.1) # セリフ3
-            sleep(15)
+            # 3回セリフ飛ばす
+            controller.blaze(
+                ManipulateTime.create_list([(0.1, 1)]*2 + [(0.1, 15)]),
+                controller.push_button, Button.A
+            )
 
             # 勝負
             print(f'第{i + 1}試合を開始')
-
-            send('Button A', 0.1) # 勝負を　しかけてきた！
-            sleep(22)
+            
+            # 勝負を　しかけてきた！
+            controller.push_button(Button.A, duration=0.1, sleep_time=22)
 
             # スペシャルアップを使う
             if args.use_x_spatk:
                 print('スペシャルアップを使用します')
 
-                send('LY MAX', 0.1)
-                sleep(0.1)
+                controller.blaze(
+                    ManipulateTime.create_list([(0.1, 0.1)]*2),
+                    controller.move, MoveDirection.DOWN
+                )
 
-                send('LY MAX', 0.1)
-                sleep(0.1)
+                controller.push_button(Button.A, duration=0.1, sleep_time=1.5)
 
-                send('Button A', 0.1)
-                sleep(1.5)
+                controller.blaze(
+                    ManipulateTime.create_list([(0.1, 0.1)]*2),
+                    controller.move, MoveDirection.RIGHT
+                )
 
-                send('LX MAX', 0.1)
-                sleep(0.1)
+                controller.blaze(
+                    ManipulateTime.create_list([(0.1, 0.1)]*2),
+                    controller.move, MoveDirection.DOWN
+                )
 
-                send('LX MAX', 0.1)
-                sleep(0.1)
+                controller.blaze(
+                    ManipulateTime.create_list([(0.1, 0.2), (0.1, 12)]),
+                    controller.push_button, Button.A
+                )
 
-                send('LY MAX', 0.1)
-                sleep(0.1)
-
-                send('LY MAX', 0.1)
-                sleep(0.1)
-
-                send('Button A', 0.1)
-                sleep(0.2)
-
-                send('Button A', 0.1)
-                sleep(12)
-
-                send('LY MIN', 0.1)
-                sleep(0.1)
-
-                send('LY MIN', 0.1)
-                sleep(0.5)
+                controller.blaze(
+                    ManipulateTime.create_list([(0.1, 0.5)]*2),
+                    controller.move, MoveDirection.UP
+                )
 
             # ダイマックスする
             if args.use_dynamax:
